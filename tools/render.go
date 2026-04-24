@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	srcDir           = "src"
-	contentDir       = "hugo/content"
-	hugoConfigSrc    = "hugo/config.yml"
-	configFile       = "config.yml"
-	exampleConfig    = "config.example.yml"
-	placeholderOpen  = "{{"
-	placeholderClose = "}}"
+	srcDir            = "src"
+	contentDir        = "hugo/content"
+	hugoConfigSrc     = "hugo/config.yml"
+	hugoConfigExample = "hugo/config.example.yml"
+	configFile        = "config.yml"
+	exampleConfig     = "config.example.yml"
+	placeholderOpen   = "{{"
+	placeholderClose  = "}}"
 )
 
 func main() {
@@ -41,6 +42,8 @@ func main() {
 func runRender() {
 	config := loadConfig()
 	validateConfig(config)
+
+	ensureHugoConfig()
 
 	if err := os.MkdirAll(contentDir, 0755); err != nil {
 		fatalf("Could not create content dir: %v", err)
@@ -83,6 +86,25 @@ func renderFile(src, dst string, config map[string]string) {
 	}
 
 	fmt.Printf("  rendered: %s\n", filepath.Base(src))
+}
+
+// ensureHugoConfig creates hugo/config.yml from hugo/config.example.yml when the
+// file is missing (e.g. instance repo created before that file existed, or merge issues).
+func ensureHugoConfig() {
+	if _, err := os.Stat(hugoConfigSrc); err == nil {
+		return
+	}
+	data, err := os.ReadFile(hugoConfigExample)
+	if err != nil {
+		fatalf("Missing %s and could not read %s: %v\nRestore hugo/config.yml from your template/upstream repository.", hugoConfigSrc, hugoConfigExample, err)
+	}
+	if err := os.MkdirAll(filepath.Dir(hugoConfigSrc), 0755); err != nil {
+		fatalf("Could not create %s: %v", filepath.Dir(hugoConfigSrc), err)
+	}
+	if err := os.WriteFile(hugoConfigSrc, data, 0644); err != nil {
+		fatalf("Could not write %s: %v", hugoConfigSrc, err)
+	}
+	fmt.Println("  bootstrapped hugo/config.yml from hugo/config.example.yml")
 }
 
 func substitute(content string, config map[string]string) string {

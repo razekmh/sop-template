@@ -6,6 +6,8 @@ on:
     paths:
       - 'src/**'
       - 'config.yml'
+      - 'config.example.yml'
+      - 'tools/**'
       - 'hugo/**'
       - '!hugo/public/**'
 
@@ -23,14 +25,30 @@ jobs:
           submodules: true        # pulls Hugo theme
           fetch-depth: 0          # needed for gh-pages deployment
 
+      # config.yml is gitignored for local secrets; CI uses example values unless
+      # you commit config.yml or add an earlier step that writes it (e.g. secret).
+      - name: Ensure config.yml for CI
+        run: |
+          if [ ! -f config.yml ]; then
+            cp config.example.yml config.yml
+          fi
+
       # ── Step 1: Render placeholders ──────────────────────────────────────────
-      - name: Make render binary executable
-        run: chmod +x bin/render-linux
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/go.mod
+          cache-dependency-path: tools/go.sum
+
+      - name: Build render binary (Linux)
+        working-directory: tools
+        run: |
+          go mod tidy
+          GOOS=linux GOARCH=amd64 go build -o ../bin/render-linux render.go
 
       - name: Render SOP documents
         run: ./bin/render-linux
-        # Fails if config.yml is missing, any placeholder is unresolved,
-        # or any config value is empty. Site will not build with broken content.
+        # Fails if any placeholder is unresolved or any config value is empty.
 
       # ── Step 2: Build Hugo site ──────────────────────────────────────────────
       - name: Setup Hugo
