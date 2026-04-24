@@ -45,6 +45,7 @@ This procedure applies to all full-time, part-time, and contract employees joini
 5. Send welcome email including:
    - Start date, time, and location (or remote setup instructions)
    - First day agenda
+   - First week schedule
    - Contact for questions: {{compliance_officer_email}}
 
 ### Before Start Date (IT — {{it_lead}})
