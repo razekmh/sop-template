@@ -66,7 +66,7 @@ git commit -m "init: render SOP for YOUR ORG NAME"
 git push
 ```
 
-The GitHub Action will build and deploy your site automatically.
+The GitHub Action will build and deploy your site automatically. If `config.yml` is not in the repository (it is gitignored by default), the workflow copies `config.example.yml` so the build succeeds; for a production site with your real values in CI, commit `config.yml` or inject it in the workflow (for example from a secret) before the render step.
 
 ---
 
@@ -98,6 +98,7 @@ sop-template/
 ├── bin/                         # pre-compiled render binaries
 ├── src/                         # source .md files with {{placeholders}}
 ├── hugo/
+│   ├── config.example.yml       # fallback if hugo/config.yml is missing (bootstrap)
 │   ├── config.yml               # Hugo config (also uses placeholders)
 │   ├── content/                 # rendered output (populated by render step)
 │   ├── static/                  # static assets (logo etc.)

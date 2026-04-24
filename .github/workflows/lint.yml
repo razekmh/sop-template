@@ -2,7 +2,7 @@ name: Lint source files
 
 # Runs on the upstream template repo only.
 # Prevents real company names / values from being committed to src/.
-# Instance repos do not need this workflow — they have no config.yml in CI.
+# Instance repos can keep this workflow: CI bootstraps config from the example file.
 
 on:
   push:
@@ -20,11 +20,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Make render binary executable
-        run: chmod +x bin/render-linux
+      - name: Ensure config.yml for CI
+        run: |
+          if [ ! -f config.yml ]; then
+            cp config.example.yml config.yml
+          fi
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/go.mod
+          cache-dependency-path: tools/go.sum
+
+      - name: Build render binary (Linux)
+        working-directory: tools
+        run: |
+          go mod tidy
+          GOOS=linux GOARCH=amd64 go build -o ../bin/render-linux render.go
 
       # Lint mode reads config.yml to know which real values are forbidden,
-      # then checks src/ files to ensure none appear.
-      # On the upstream repo, config.yml should contain example/placeholder values.
+      # then checks src/ files to ensure none appear (expects example values in CI).
       - name: Lint for hardcoded values
         run: ./bin/render-linux lint
