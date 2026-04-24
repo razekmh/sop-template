@@ -1,0 +1,52 @@
+name: Render and Build Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'config.yml'
+      - 'hugo/**'
+      - '!hugo/public/**'
+
+jobs:
+  render-and-build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to push rendered output and gh-pages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true        # pulls Hugo theme
+          fetch-depth: 0          # needed for gh-pages deployment
+
+      # ── Step 1: Render placeholders ──────────────────────────────────────────
+      - name: Make render binary executable
+        run: chmod +x bin/render-linux
+
+      - name: Render SOP documents
+        run: ./bin/render-linux
+        # Fails if config.yml is missing, any placeholder is unresolved,
+        # or any config value is empty. Site will not build with broken content.
+
+      # ── Step 2: Build Hugo site ──────────────────────────────────────────────
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest'
+          extended: true
+
+      - name: Build site
+        run: hugo --source hugo/ --minify
+        # Only builds from hugo/content/ — src/ is never seen by Hugo
+
+      # ── Step 3: Deploy to GitHub Pages ───────────────────────────────────────
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: hugo/public
+          # Deploys only the built static site — no source, no placeholders

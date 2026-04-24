@@ -1,0 +1,29 @@
+# SOP Instance Configuration
+# ─────────────────────────────────────────────────────────────
+# Copy this file to config.yml and fill in your values.
+# config.yml is gitignored — never commit it to the repo.
+# ─────────────────────────────────────────────────────────────
+
+# Organisation
+company_name: "Your Company Name"
+company_short: "YCN"                          # abbreviation used in headers
+company_website: "https://yourcompany.com"
+company_address: "123 Example Street, City, Country"
+
+# Key people
+compliance_officer: "Jane Smith"
+compliance_officer_email: "jane.smith@yourcompany.com"
+ceo_name: "John Doe"
+hr_lead: "Sarah Johnson"
+it_lead: "Mike Williams"
+
+# Document metadata
+doc_owner: "Jane Smith"
+doc_reviewer: "John Doe"
+doc_version: "1.0.0"
+last_reviewed: "2024-01-01"
+review_cycle: "annually"
+
+# Site
+site_title: "Your Company SOP"
+base_url: "https://yourorg.github.io/your-sop/"

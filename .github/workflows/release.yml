@@ -1,0 +1,74 @@
+name: Release binaries
+
+# Triggered by pushing a version tag, e.g.:
+#   git tag v1.2.0
+#   git push origin v1.2.0
+#
+# Builds render binaries for all platforms and commits them to bin/.
+# Instance owners always get the latest binary by pulling from upstream.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main           # always build from main, not the tag commit
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build binaries
+        working-directory: tools
+        run: |
+          go mod tidy
+          GOOS=linux   GOARCH=amd64 go build -o ../bin/render-linux       render.go
+          GOOS=darwin  GOARCH=amd64 go build -o ../bin/render-mac         render.go
+          GOOS=darwin  GOARCH=arm64 go build -o ../bin/render-mac-arm     render.go
+          GOOS=windows GOARCH=amd64 go build -o ../bin/render-windows.exe render.go
+          echo "Built:"
+          ls -lh ../bin/
+
+      - name: Commit binaries to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bin/
+          git diff --cached --quiet \
+            && echo "No binary changes to commit." \
+            || git commit -m "chore: update binaries for ${{ github.ref_name }}"
+          git push origin main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/render-linux
+            bin/render-mac
+            bin/render-mac-arm
+            bin/render-windows.exe
+          body: |
+            ## Render binary ${{ github.ref_name }}
+
+            Download the binary for your platform and replace `bin/render-*` in your instance repo,
+            or pull from upstream to get the update automatically.
+
+            | Platform | Binary |
+            |----------|--------|
+            | Linux (x64) | `render-linux` |
+            | macOS (Intel) | `render-mac` |
+            | macOS (Apple Silicon) | `render-mac-arm` |
+            | Windows (x64) | `render-windows.exe` |
