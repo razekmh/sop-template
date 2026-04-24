@@ -8,6 +8,7 @@
 company_name: "Your Company Name"
 company_short: "YCN"                          # abbreviation used in headers
 company_website: "https://yourcompany.com"
+company_domain: "yourcompany.com"             # hostname only — used for email examples etc.
 company_address: "123 Example Street, City, Country"
 
 # Key people

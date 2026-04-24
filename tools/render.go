@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	srcDir         = "src"
-	contentDir     = "hugo/content"
-	hugoConfigSrc  = "hugo/config.yml"
-	configFile     = "config.yml"
-	exampleConfig  = "config.example.yml"
+	srcDir           = "src"
+	contentDir       = "hugo/content"
+	hugoConfigSrc    = "hugo/config.yml"
+	configFile       = "config.yml"
+	exampleConfig    = "config.example.yml"
 	placeholderOpen  = "{{"
 	placeholderClose = "}}"
 )
@@ -72,12 +72,10 @@ func renderFile(src, dst string, config map[string]string) {
 
 	output := substitute(string(data), config)
 
-	// Fail fast on any unreplaced placeholders
-	if idx := strings.Index(output, placeholderOpen); idx != -1 {
-		// Find the placeholder for a useful error message
-		end := strings.Index(output[idx:], placeholderClose)
-		placeholder := output[idx : idx+end+len(placeholderClose)]
-		fatalf("Unreplaced placeholder %s in %s — add it to config.yml", placeholder, src)
+	// Fail fast on any unreplaced config placeholders ({{key}}), but do not treat
+	// Hugo shortcodes like {{< columns >}} or {{% hint %}} as config keys.
+	if bad := findUnreplacedConfigPlaceholder(output, config); bad != "" {
+		fatalf("Unreplaced placeholder %s in %s — add it to config.yml", bad, src)
 	}
 
 	if err := os.WriteFile(dst, []byte(output), 0644); err != nil {
@@ -92,6 +90,59 @@ func substitute(content string, config map[string]string) string {
 		content = strings.ReplaceAll(content, placeholderOpen+k+placeholderClose, v)
 	}
 	return content
+}
+
+// findUnreplacedConfigPlaceholder returns the first {{...}} that should come from
+// config.yml but is still present, or malformed markup. Hugo shortcodes that use
+// {{< ... >}} or {{% ... %}} are skipped so theme markup can live in src/.
+func findUnreplacedConfigPlaceholder(s string, config map[string]string) string {
+	validKeys := make(map[string]struct{}, len(config))
+	for k := range config {
+		validKeys[k] = struct{}{}
+	}
+	i := 0
+	for i < len(s) {
+		j := strings.Index(s[i:], placeholderOpen)
+		if j < 0 {
+			return ""
+		}
+		j += i
+		afterOpen := j + len(placeholderOpen)
+		if afterOpen >= len(s) {
+			return "{{"
+		}
+		rest := s[afterOpen:]
+		switch rest[0] {
+		case '<':
+			close := strings.Index(rest, ">}}")
+			if close < 0 {
+				return s[j:min(j+50, len(s))]
+			}
+			i = afterOpen + close + len(">}}")
+			continue
+		case '%':
+			close := strings.Index(rest, "%}}")
+			if close < 0 {
+				return s[j:min(j+50, len(s))]
+			}
+			i = afterOpen + close + len("%}}")
+			continue
+		}
+		closeRel := strings.Index(rest, placeholderClose)
+		if closeRel < 0 {
+			return s[j:]
+		}
+		key := rest[:closeRel]
+		if strings.TrimSpace(key) != key || key == "" {
+			return placeholderOpen + key + placeholderClose
+		}
+		if _, ok := validKeys[key]; !ok {
+			return placeholderOpen + key + placeholderClose
+		}
+		// Known key still present after substitution — should not happen
+		return placeholderOpen + key + placeholderClose
+	}
+	return ""
 }
 
 // ── Lint ──────────────────────────────────────────────────────────────────────

@@ -51,7 +51,7 @@ This procedure applies to all full-time, part-time, and contract employees joini
 ### Before Start Date (IT — {{it_lead}})
 
 1. Provision laptop or workstation
-2. Create company email account (`firstname.lastname@{{company_website | trimPrefix "https://"}}`)
+2. Create company email account (`firstname.lastname@{{company_domain}}`)
 3. Grant access to core systems based on role profile
 4. Prepare IT welcome guide with credentials and setup steps
 
